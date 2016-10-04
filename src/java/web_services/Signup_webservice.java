@@ -47,6 +47,9 @@ public class Signup_webservice {
     /**
      * Web service operation
      */
+    
+    
+    
     @WebMethod(operationName = "Signup")
     public String Signup(@WebParam(name = "teacher_uid") 
             String teacher_uid, @WebParam(name = "teacher_name") 
@@ -78,6 +81,7 @@ public class Signup_webservice {
                 pstmt.setString(4,teacher_dept);
                 pstmt.setString(5,teacher_pwd);
                 int rowcount = pstmt.executeUpdate();
+                connection.close();
                 return "1";
             }
             catch(SQLException e)
@@ -153,6 +157,7 @@ public String LoginOperation(@WebParam(name = "UID") String UID,@WebParam(name =
             {
                 check = 1;
             }
+            connection.close();
             return ""+check;
         }
         catch(  SQLException e)
@@ -200,6 +205,7 @@ public String LoginOperation(@WebParam(name = "UID") String UID,@WebParam(name =
                 pstmt.setString(7,st_div);
                 pstmt.setString(8,st_pract_batch);
                 int rowcount = pstmt.executeUpdate();
+                connection.close();
                 return "1";
             }
             catch(SQLException e)
@@ -242,6 +248,7 @@ public String LoginOperation(@WebParam(name = "UID") String UID,@WebParam(name =
                 pstmt.setInt(5,Sub_Class);
                
                 int rowcount = pstmt.executeUpdate();
+                connection.close();
                 return "1";
             }
             catch(SQLException e)
@@ -287,6 +294,7 @@ public String LoginOperation(@WebParam(name = "UID") String UID,@WebParam(name =
                 pstmt.setString(8,Stud_Roll_No);            
                
                 int rowcount = pstmt.executeUpdate();
+                connection.close();
                 return "1";
             }
             catch(SQLException e)
@@ -299,6 +307,7 @@ public String LoginOperation(@WebParam(name = "UID") String UID,@WebParam(name =
     /**
      * Web service operation
      */
+    String result;
     @WebMethod(operationName = "Insert_Attendance")
     public String Insert_Attendance(@WebParam(name = "s") String s) {
         //TODO write your implementation code here:
@@ -309,8 +318,9 @@ public String LoginOperation(@WebParam(name = "UID") String UID,@WebParam(name =
         Type t1 = new TypeToken<ArrayList<Attendance_Data>>(){}.getType();
         
        List<Attendance_Data> ar = ob.fromJson(s,t1);
+  
        for(Attendance_Data st:ar){ 
-            System.out.println("data to insert" + st);
+            System.out.println("data to insert" + ar);
             Connection connection;
             Statement statement = null;
             ResultSet resultSet = null;
@@ -326,7 +336,9 @@ public String LoginOperation(@WebParam(name = "UID") String UID,@WebParam(name =
             System.out.println("Connection Established");
             System.out.println("\ninsert into Attendance_Details Table");
             
-            String insertQuery = "INSERT INTO Attendance_Details(Stud_ID,Sub_Class,Sub_Name,Date,Time,Attendence,Stud_Name,Stud_Roll_No) VALUES(?,?,?,?,?,?,?,?)";
+            String result_duplicate = check_duplicate(st.getStud_ID(),st.getSub_Class(),st.getSub_Name(),st.getDate(),st.getTime(),st.getAttendence(),st.getStud_Name(),st.getStud_Roll_No());
+            if(result_duplicate == "1"){
+                  String insertQuery = "INSERT INTO Attendance_Details(Stud_ID,Sub_Class,Sub_Name,Date,Time,Attendence,Stud_Name,Stud_Roll_No) VALUES(?,?,?,?,?,?,?,?)";
 
             PreparedStatement pstmt = null;
             pstmt = connection.prepareStatement(insertQuery);
@@ -341,15 +353,110 @@ public String LoginOperation(@WebParam(name = "UID") String UID,@WebParam(name =
                 pstmt.setString(8,st.getStud_Roll_No());    
 
                 int rowcount = pstmt.executeUpdate();
-
-                return "1";
+                connection.close();
+                result = "1";
+            }
+            else{
+            System.out.println("record is already present");
+            }     
+             //   return "1";
             }
             catch(  ClassNotFoundException | SQLException e)
             {
             e.getMessage();
-            return "exception" + e;
+            result = "exception"+e;
+           // return "exception" + e;
             } 
         } 
-       return "end";
+       return result;
     }
-}
+    
+    public String check_duplicate(String Stud_ID,int Sub_Class,String Sub_Name,String Date,String Time,String Attendence,String Stud_Name,String Stud_Roll_No){
+        
+        //TODO write your implementation code here:
+        Connection connection;
+        Statement statement = null;
+        ResultSet resultSet = null;
+        int numberOfColumns = 0;
+        try
+        {      
+            connection = DataConnection.getDataConnection();
+            statement = connection.createStatement();
+            String a="SELECT * FROM Attendance_Details WHERE Stud_ID = '"+Stud_ID+"' Sub_Class = '"+Sub_Class+"' Sub_Name = '"+Sub_Name+"' Date = '"+Date+"' Time = '"+Time+"' Attendence = '"+Attendence+"' Stud_Name = '"+Stud_Name+"' Stud_Roll_No ='"+Stud_Roll_No+"'";
+            // String insertQuery = "INSERT INTO Attendance_Details(Stud_ID,Sub_Class,Sub_Name,Date,Time,Attendence,Stud_Name,Stud_Roll_No) VALUES(?,?,?,?,?,?,?,?)";
+            resultSet = statement.executeQuery(a);
+            int check = 0;
+            if(!resultSet.isBeforeFirst())
+            {
+                check = 1;
+            }
+            else
+            {
+                check = 0;
+            }
+            connection.close();
+            return ""+check;
+        }
+        catch(  SQLException e)
+        {
+            e.getMessage();
+            return "exception" + e;
+        }  
+    }
+
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "Show_Teacher_Profile_Operation")
+    public String Show_Teacher_Profile_Operation(@WebParam(name = "s") String s) {
+        //TODO write your implementation code here:
+     
+        Connection connection;
+        Statement statement = null;
+        ResultSet resultSet = null;
+        ResultSetMetaData metaData = null;
+        int numberOfColumns = 0;
+      
+        PreparedStatement pstmt = null;
+       
+        Boolean flag = false;
+        
+        try
+        {
+            connection = DataConnection.getDataConnection();
+            statement = connection.createStatement();
+    
+            System.out.println("Connection Established");
+          
+            ResultSet rs = statement.executeQuery("SELECT teacher_id,teacher_name,teacher_post,dept FROM teacher_details WHERE teacher_id="+s);
+        ArrayList ar = new ArrayList<SignUp_Data>();
+      //  ArrayList offer = new ArrayList<>();
+    while(rs.next())
+    {       String teacher_id,teacher_name,teacher_post,dept;
+           
+            teacher_id=rs.getString("teacher_id");
+            teacher_name=rs.getString("teacher_name");
+              teacher_post=rs.getString("teacher_post");
+                dept=rs.getString("dept");
+ 
+                 
+            SignUp_Data rd=new SignUp_Data();
+         
+          rd.setTeacher_id(teacher_id);
+          rd.setTeacher_name(teacher_name);
+          rd.setDept(dept);
+          rd.setTeacher_post(teacher_post);
+            ar.add(rd);
+     }
+    Gson ob = new Gson();
+    String str = ob.toJson(ar);
+    
+    return  str ;
+        }
+        catch(Exception e){
+            System.out.println(e.getMessage());
+            return "fail" + e;
+        }
+    }
+    }
+
